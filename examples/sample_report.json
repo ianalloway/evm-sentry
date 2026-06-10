@@ -1,0 +1,156 @@
+{
+  "address": "0xEXAMPLE000000000000000000000000000000bAd",
+  "chain": "base",
+  "is_contract": true,
+  "risk_score": 100,
+  "risk_band": "Critical",
+  "counts": {
+    "Info": 1,
+    "Low": 2,
+    "Medium": 7,
+    "High": 2,
+    "Critical": 0
+  },
+  "findings": [
+    {
+      "id": "UUPS_NO_AUTH_GUARD",
+      "title": "UUPS proxy without visible _authorizeUpgrade guard",
+      "severity": "High",
+      "check": "proxy",
+      "description": "UUPSUpgradeable is used but no _authorizeUpgrade override was found in source. A missing/empty guard can let anyone upgrade the implementation.",
+      "evidence": {},
+      "recommendation": "Confirm _authorizeUpgrade restricts to owner/governance."
+    },
+    {
+      "id": "OPCODE_SELFDESTRUCT",
+      "title": "SELFDESTRUCT reachable in bytecode",
+      "severity": "High",
+      "check": "dangerous_opcodes",
+      "description": "The runtime bytecode contains SELFDESTRUCT. The contract (or a delegatecall target) may be able to destroy itself, wiping code and forwarding its balance.",
+      "evidence": {
+        "opcode": "0xFF"
+      },
+      "recommendation": ""
+    },
+    {
+      "id": "PROXY_UPGRADEABLE",
+      "title": "Upgradeable proxy detected",
+      "severity": "Medium",
+      "check": "proxy",
+      "description": "This is an upgradeable proxy (eip1967 pattern). Implementation -> 0xC0ffee000000000000000000000000000000Cafe. The logic users interact with can be replaced by whoever holds upgrade rights, changing behavior after you've approved or deposited funds.",
+      "evidence": {
+        "proxy_kind": "eip1967",
+        "implementation": "0xC0ffee000000000000000000000000000000Cafe",
+        "admin": "0xAdm1n0000000000000000000000000000000000"
+      },
+      "recommendation": "Identify who controls upgrades (admin / owner). If it is an EOA or unaudited multisig, treat upgradeability as a centralization risk."
+    },
+    {
+      "id": "PRIVILEGED_POWERS",
+      "title": "Privileged owner powers present",
+      "severity": "Medium",
+      "check": "ownership",
+      "description": "Owner/admin can: mint, admin withdraw/sweep. These are legitimate in many designs but are also the levers used in rug pulls. Confirm who holds the keys and any limits.",
+      "evidence": {
+        "powers": [
+          "mint",
+          "admin withdraw/sweep"
+        ]
+      },
+      "recommendation": ""
+    },
+    {
+      "id": "TOKEN_BLACKLIST",
+      "title": "Address blacklist / denylist mechanism",
+      "severity": "Medium",
+      "check": "token_traps",
+      "description": "Source references a blacklist/denylist. An admin can block specific addresses from transferring \u2014 a honeypot pattern where buyers can purchase but not sell.",
+      "evidence": {},
+      "recommendation": ""
+    },
+    {
+      "id": "TOKEN_TRADING_TOGGLE",
+      "title": "Trading can be toggled on/off by admin",
+      "severity": "Medium",
+      "check": "token_traps",
+      "description": "A trading on/off switch lets the owner disable transfers or selling after launch \u2014 a common honeypot lever.",
+      "evidence": {},
+      "recommendation": ""
+    },
+    {
+      "id": "TOKEN_ADJUSTABLE_FEES",
+      "title": "Adjustable buy/sell fees",
+      "severity": "Medium",
+      "check": "token_traps",
+      "description": "Owner-settable trading fees. If unbounded, fees can be raised to ~100%, effectively confiscating sells.",
+      "evidence": {},
+      "recommendation": "Check for a hard max-fee constant in source."
+    },
+    {
+      "id": "TOKEN_OWNER_MINT",
+      "title": "Owner-controlled minting",
+      "severity": "Medium",
+      "check": "token_traps",
+      "description": "Privileged mint can inflate supply and dilute holders. Confirm whether minting is capped or permanently disabled.",
+      "evidence": {},
+      "recommendation": ""
+    },
+    {
+      "id": "FRESH_DEPLOYMENT",
+      "title": "Recently deployed contract",
+      "severity": "Medium",
+      "check": "freshness",
+      "description": "Contract was deployed less than 48 hours ago. New contracts have little track record; many rugs and scams operate within their first days. Combine with privileged-power findings for an overall picture.",
+      "evidence": {
+        "creation_block": null,
+        "age_days": 0.8,
+        "creator": "0xDep10y3r00000000000000000000000000000000"
+      },
+      "recommendation": ""
+    },
+    {
+      "id": "SINGLE_OWNER",
+      "title": "Single-owner access control",
+      "severity": "Low",
+      "check": "ownership",
+      "description": "Privileged actions are gated by a single owner. If that key is an EOA, it is a single point of failure and a centralization/rug vector.",
+      "evidence": {},
+      "recommendation": "Check whether ownership is renounced or held by a timelock/multisig. A lone EOA owner is higher risk."
+    },
+    {
+      "id": "TOKEN_TX_LIMITS",
+      "title": "Per-transaction / max-wallet limits",
+      "severity": "Low",
+      "check": "token_traps",
+      "description": "Adjustable transfer/wallet caps can be set to ~0 to freeze sells. Legitimate for anti-bot launches; verify bounds.",
+      "evidence": {},
+      "recommendation": ""
+    },
+    {
+      "id": "SOURCE_VERIFIED",
+      "title": "Source code is verified on the block explorer",
+      "severity": "Info",
+      "check": "verification",
+      "description": "Verified as 'MoonRocketToken' (compiler v0.8.20+commit.a1b79de6).",
+      "evidence": {},
+      "recommendation": ""
+    }
+  ],
+  "metadata": {
+    "chain_id": 8453,
+    "contract_name": "MoonRocketToken",
+    "compiler": "v0.8.20+commit.a1b79de6",
+    "verified": true,
+    "proxy_kind": "eip1967",
+    "implementation": "0xC0ffee000000000000000000000000000000Cafe",
+    "balance_eth": 0.0125,
+    "creator": "0xDep10y3r00000000000000000000000000000000",
+    "data_sources": [
+      "rpc:eth_getCode",
+      "rpc:eip1967-slot",
+      "explorer:getsourcecode",
+      "explorer:getcontractcreation"
+    ]
+  },
+  "warnings": []
+}

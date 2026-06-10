@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evm-sentry"
+version = "0.1.0"
+description = "On-chain anomaly & risk scanner for Base and Ethereum smart contracts."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Ian Alloway" }]
+keywords = ["ethereum", "base", "evm", "security", "smart-contracts", "risk", "scanner", "web3"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov", "ruff"]
+
+[project.scripts]
+evm-sentry = "evm_sentry.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ianalloway/evm-sentry"
+Repository = "https://github.com/ianalloway/evm-sentry"
+Issues = "https://github.com/ianalloway/evm-sentry/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
