@@ -21,12 +21,15 @@ class Scanner:
         client: Optional[EVMClient] = None,
     ):
         self.chain_cfg = resolve_chain(chain)
+        self.api_key = api_key
         self.checks = checks if checks is not None else list(ALL_CHECKS)
-        self.client = client or EVMClient(self.chain_cfg, api_key=api_key)
+        self.client = client
 
     def scan_address(self, address: str) -> ScanResult:
         if not is_address(address):
             raise ValueError(f"Not a valid 0x address: {address!r}")
+        if self.client is None:
+            self.client = EVMClient(self.chain_cfg, api_key=self.api_key)
         ctx = self.client.build_context(address)
         return self.scan_context(ctx)
 
