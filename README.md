@@ -69,6 +69,15 @@ export ETHERSCAN_API_KEY=YourKeyHere
 ```
 
 ## Usage
+### Proxy upgrade timeline
+
+```bash
+evm-sentry 0x... --chain base --timeline
+evm-sentry 0x... --timeline -f markdown -o timeline.md
+```
+
+Fetches `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs (default last 1,000 blocks).
+
 
 ```bash
 # Scan a Base contract (terminal summary)

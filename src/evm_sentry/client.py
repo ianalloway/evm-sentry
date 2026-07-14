@@ -97,6 +97,32 @@ class EVMClient:
             }
         )
 
+    def get_block_number(self) -> int:
+        result = self.rpc("eth_blockNumber", []) or "0x0"
+        return int(result, 16)
+
+    def get_logs(
+        self,
+        *,
+        address: str,
+        topics: List[str],
+        from_block: int,
+        to_block: int,
+    ) -> List[Dict[str, Any]]:
+        """Fetch logs. ``topics`` is OR'd at topic0 (common proxy events)."""
+        result = self.rpc(
+            "eth_getLogs",
+            [
+                {
+                    "address": address,
+                    "fromBlock": hex(from_block),
+                    "toBlock": hex(to_block),
+                    "topics": [topics],
+                }
+            ],
+        )
+        return result or []
+
     def get_block_timestamp(self, block_number: int) -> Optional[int]:
         result = self.rpc(
             "eth_getBlockByNumber", [hex(block_number), False]

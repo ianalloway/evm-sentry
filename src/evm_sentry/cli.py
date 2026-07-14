@@ -9,7 +9,10 @@ from typing import List, Optional
 from . import __version__
 from .config import CHAINS
 from .engine import Scanner
+from .client import EVMClient, is_address
+from .config import resolve_chain
 from .report import to_json, to_markdown, to_terminal
+from .timeline import render_timeline_markdown, render_timeline_terminal, scan_timeline
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +42,23 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["low", "medium", "high", "critical"],
         help="Exit non-zero if risk band meets/exceeds this (for CI).",
     )
+    p.add_argument(
+        "--timeline",
+        action="store_true",
+        help="Fetch proxy upgrade/admin event timeline via eth_getLogs (lookback 1000 blocks).",
+    )
+    p.add_argument(
+        "--from-block",
+        type=int,
+        default=None,
+        help="Timeline start block (default: latest-1000).",
+    )
+    p.add_argument(
+        "--to-block",
+        type=int,
+        default=None,
+        help="Timeline end block (default: latest).",
+    )
     p.add_argument("--version", action="version", version=f"evm-sentry {__version__}")
     return p
 
@@ -49,6 +69,44 @@ _FAIL_MAP = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+    if not is_address(args.address):
+        print(f"error: invalid address: {args.address}", file=sys.stderr)
+        return 2
+
+    if args.timeline:
+        try:
+            chain = resolve_chain(args.chain)
+            client = EVMClient(chain=chain, api_key=args.api_key)
+            report = scan_timeline(
+                client,
+                args.address.strip(),
+                from_block=args.from_block,
+                to_block=args.to_block,
+            )
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        except Exception as exc:  # noqa: BLE001
+            print(f"error: timeline failed: {exc}", file=sys.stderr)
+            return 2
+
+        fmt = args.format
+        if fmt == "json":
+            import json
+            text = json.dumps(report.to_dict(), indent=2)
+        elif fmt in ("markdown", "md"):
+            text = render_timeline_markdown(report)
+        else:
+            text = render_timeline_terminal(report)
+
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as fh:
+                fh.write(text + "\n")
+            print(f"Wrote timeline to {args.output}", file=sys.stderr)
+        else:
+            print(text)
+        return 0
+
     try:
         scanner = Scanner(chain=args.chain, api_key=args.api_key)
         result = scanner.scan_address(args.address)
