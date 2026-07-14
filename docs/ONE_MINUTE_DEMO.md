@@ -21,10 +21,11 @@ Output includes:
 - token trap / honeypot-style heuristics
 - JSON and Markdown output for CI or public writeups
 
-A sample Base report is committed here:
+A sample report (illustrative, generated offline) showing the full output
+shape is committed here:
 
-- [`examples/base_usdc_report.md`](../examples/base_usdc_report.md)
-- [`examples/base_usdc_report.json`](../examples/base_usdc_report.json)
+- [`examples/sample_report.md`](../examples/sample_report.md)
+- [`examples/sample_report.json`](../examples/sample_report.json)
 
 ## Why this matters for Base
 

@@ -138,14 +138,12 @@ Adding a check is a ~15-line function dropped into `checks/` and registered in
 `checks/__init__.py`. See [docs/METHODOLOGY.md](docs/METHODOLOGY.md) for the
 rationale behind each heuristic and its known false-positive modes.
 
-## Roadmap
+## Not implemented yet
 
-- [ ] Approval / allowance risk scanning for a given wallet
-- [ ] Source-level static patterns for reentrancy & unchecked external calls
-- [ ] Storage-layout diffing across proxy upgrades
-- [ ] Batch / watchlist mode + JSON-lines output
-- [ ] Optional 4byte signature decoding for unverified contracts
-- [ ] Allowlist of known-good implementations (OZ, Uniswap, etc.) to cut noise
+Ideas under consideration, not committed to: approval/allowance risk scanning,
+reentrancy static patterns, storage-layout diffing across upgrades, batch/
+watchlist mode, and an allowlist of known-good implementations to cut noise.
+None of these exist in the codebase today — if you want one, open an issue.
 
 ## Limitations & disclaimer
 
