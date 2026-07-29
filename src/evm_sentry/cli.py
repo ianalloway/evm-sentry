@@ -7,10 +7,9 @@ import sys
 from typing import List, Optional
 
 from . import __version__
-from .config import CHAINS
-from .engine import Scanner
 from .client import EVMClient, is_address
-from .config import resolve_chain
+from .config import CHAINS, resolve_chain
+from .engine import Scanner
 from .report import to_json, to_markdown, to_terminal
 from .timeline import render_timeline_markdown, render_timeline_terminal, scan_timeline
 

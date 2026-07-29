@@ -12,9 +12,9 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+from evm_sentry import report
 from evm_sentry.context import ContractContext
 from evm_sentry.engine import Scanner
-from evm_sentry import report
 
 # A representative "risky token" context (illustrative, not a real address).
 RISKY_SOURCE = """
