@@ -1,14 +1,15 @@
 <h1 align="center">🛡️ EVM Sentry</h1>
 
 <p align="center">
-  <b>On-chain anomaly &amp; risk scanner for Base and Ethereum smart contracts.</b><br/>
+  <b>On-chain anomaly &amp; risk scanner for Ethereum, Base, and Optimism smart contracts.</b><br/>
   Point it at any contract address and get a transparent, explainable risk report —
   proxy/upgradeability, access-control centralization, dangerous opcodes, honeypot
   signals, and provenance — in seconds.
 </p>
 
 <p align="center">
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg"/>
+  <a href="https://github.com/ianalloway/evm-sentry/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ianalloway/evm-sentry/actions/workflows/ci.yml/badge.svg"/></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg"/></a>
   <img alt="python" src="https://img.shields.io/badge/python-3.9%2B-blue.svg"/>
   <img alt="chains" src="https://img.shields.io/badge/chains-Ethereum%20%7C%20Base%20%7C%20Optimism-6f42c1.svg"/>
   <img alt="status" src="https://img.shields.io/badge/status-beta-yellow.svg"/>
@@ -38,6 +39,7 @@ It is a triage and research tool — *not* a substitute for a professional audit
 | **Dangerous opcodes** | `SELFDESTRUCT`, `DELEGATECALL`, `CALLCODE`, `CREATE2` — parsed correctly, skipping PUSH immediate data | ✅ (bytecode only) |
 | **Token honeypot signals** | blacklist/denylist, trading on/off toggle, max-tx / max-wallet limits, adjustable buy/sell fees, owner-controlled mint | needs source |
 | **Provenance / freshness** | deployer, creation block, contract age (fresh deploys flagged) | needs explorer key |
+| **Proxy upgrade timeline** | `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs via `eth_getLogs` (`--timeline`) | ✅ (RPC) |
 
 Findings roll up into a **0–100 risk score** and a band
 (`Minimal → Low → Elevated → High → Critical`).
@@ -56,28 +58,34 @@ a low score is never silently mistaken for a clean bill of health.
 
 ## Install
 
+Not on PyPI yet — install from GitHub:
+
+```bash
+# isolated CLI
+pipx install git+https://github.com/ianalloway/evm-sentry.git
+
+# or into the current environment
+pip install git+https://github.com/ianalloway/evm-sentry.git
+```
+
+From a source checkout (editable):
+
 ```bash
 git clone https://github.com/ianalloway/evm-sentry.git
 cd evm-sentry
 pip install -e .
+# tests + lint: pip install -e ".[dev]" && pytest -q && ruff check src tests
 ```
 
-Optional (recommended) — set a free Etherscan V2 key to unlock source heuristics:
+Optional (recommended) — set a free [Etherscan V2](https://etherscan.io/apis) key
+to unlock verified-source heuristics, ABI checks, and deployment provenance
+(one key covers Ethereum, Base, and Optimism):
 
 ```bash
 export ETHERSCAN_API_KEY=YourKeyHere
 ```
 
 ## Usage
-### Proxy upgrade timeline
-
-```bash
-evm-sentry 0x... --chain base --timeline
-evm-sentry 0x... --timeline -f markdown -o timeline.md
-```
-
-Fetches `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs (default last 1,000 blocks).
-
 
 ```bash
 # Scan a Base contract (terminal summary)
@@ -85,16 +93,29 @@ evm-sentry 0xYourContract --chain base
 
 # Ethereum, full Markdown report to a file
 evm-sentry 0xYourContract --chain ethereum --format markdown -o report.md
+# shorthand:  evm-sentry 0xYourContract --chain ethereum --markdown -o report.md
 
 # JSON for piping into other tools
 evm-sentry 0xYourContract --chain base --format json
 
-# CI gate: exit non-zero if risk is High or worse
+# CI gate: exit non-zero if risk is High / Elevated or worse
 evm-sentry 0xYourContract --chain base --fail-on high
+evm-sentry 0xYourContract --chain base --fail-on elevated
 ```
 
-Supported chains: `ethereum` (1), `base` (8453), `optimism` (10). Override any
-RPC with `EVM_SENTRY_RPC_<CHAIN>`.
+Supported chains: `ethereum` (1), `base` (8453), `optimism` (10). Aliases:
+`eth`/`mainnet`, `op`. Override any RPC with `EVM_SENTRY_RPC_<CHAIN>`
+(e.g. `EVM_SENTRY_RPC_BASE`).
+
+### Proxy upgrade timeline
+
+```bash
+evm-sentry 0x... --chain base --timeline
+evm-sentry 0x... --timeline --format markdown -o timeline.md
+```
+
+Fetches `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs (default last 1,000 blocks).
+Use `--from-block` / `--to-block` to widen the window.
 
 ### As a library
 

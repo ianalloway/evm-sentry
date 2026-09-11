@@ -17,7 +17,7 @@ from .timeline import render_timeline_markdown, render_timeline_terminal, scan_t
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="evm-sentry",
-        description="On-chain anomaly & risk scanner for Base and Ethereum contracts.",
+        description="On-chain anomaly & risk scanner for Ethereum, Base, and Optimism contracts.",
     )
     p.add_argument("address", help="0x contract address to scan")
     p.add_argument(
@@ -30,6 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format (default: terminal)",
     )
     p.add_argument(
+        "--markdown",
+        action="store_true",
+        help="Shorthand for --format markdown",
+    )
+    p.add_argument(
         "-o", "--output", help="Write report to this file instead of stdout",
     )
     p.add_argument(
@@ -38,8 +43,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--fail-on", default=None,
-        choices=["low", "medium", "high", "critical"],
-        help="Exit non-zero if risk band meets/exceeds this (for CI).",
+        choices=["low", "medium", "elevated", "high", "critical"],
+        help="Exit non-zero if risk band meets/exceeds this (for CI). "
+             "'medium' and 'elevated' are aliases (band Elevated).",
     )
     p.add_argument(
         "--timeline",
@@ -63,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 _BAND_ORDER = {"Minimal": 0, "N/A": 0, "Low": 1, "Elevated": 2, "High": 3, "Critical": 4}
-_FAIL_MAP = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+_FAIL_MAP = {"low": 1, "medium": 2, "elevated": 2, "high": 3, "critical": 4}
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -89,7 +95,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"error: timeline failed: {exc}", file=sys.stderr)
             return 2
 
-        fmt = args.format
+        fmt = "markdown" if args.markdown else args.format
         if fmt == "json":
             import json
             text = json.dumps(report.to_dict(), indent=2)
@@ -116,7 +122,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"error: scan failed: {exc}", file=sys.stderr)
         return 2
 
-    fmt = args.format
+    fmt = "markdown" if args.markdown else args.format
     if fmt in ("markdown", "md"):
         text = to_markdown(result)
     elif fmt == "json":

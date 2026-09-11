@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "evm-sentry"
 version = "0.1.0"
-description = "On-chain anomaly & risk scanner for Base and Ethereum smart contracts."
+description = "On-chain anomaly & risk scanner for Ethereum, Base, and Optimism smart contracts."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Ian Alloway" }]
-keywords = ["ethereum", "base", "evm", "security", "smart-contracts", "risk", "scanner", "web3"]
+keywords = ["ethereum", "base", "optimism", "evm", "security", "smart-contracts", "risk", "scanner", "web3"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -32,6 +32,7 @@ evm-sentry = "evm_sentry.cli:main"
 Homepage = "https://github.com/ianalloway/evm-sentry"
 Repository = "https://github.com/ianalloway/evm-sentry"
 Issues = "https://github.com/ianalloway/evm-sentry/issues"
+Documentation = "https://github.com/ianalloway/evm-sentry#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
