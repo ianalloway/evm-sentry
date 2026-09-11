@@ -1,4 +1,4 @@
-"""EVM Sentry — on-chain anomaly & risk scanner for Base and Ethereum contracts."""
+"""EVM Sentry — on-chain anomaly & risk scanner for Ethereum, Base, and Optimism contracts."""
 
 from .engine import Scanner
 from .models import Finding, ScanResult, Severity

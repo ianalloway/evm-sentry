@@ -1,7 +1,7 @@
 # EVM Sentry — 1 minute demo
 
 EVM Sentry is an MIT-licensed CLI/library that scans deployed EVM contracts on
-Base, Ethereum, and Optimism and produces explainable risk reports.
+Ethereum, Base, and Optimism and produces explainable risk reports.
 
 ## Demo: scan Base USDC
 
@@ -9,7 +9,8 @@ Base, Ethereum, and Optimism and produces explainable risk reports.
 pipx install git+https://github.com/ianalloway/evm-sentry.git
 # or: pip install git+https://github.com/ianalloway/evm-sentry.git
 
-evm-sentry 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 --chain base --markdown
+evm-sentry 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 --chain base --format markdown
+# equivalent shorthand: --markdown
 ```
 
 Output includes:
