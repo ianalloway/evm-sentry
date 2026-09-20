@@ -7,7 +7,7 @@
 
 ## 🔴 Risk score: 100/100 — Critical
 
-**Findings:** 2 High · 7 Medium · 2 Low · 1 Info
+**Findings:** 2 High · 8 Medium · 2 Low · 1 Info
 
 ## Findings
 
@@ -40,6 +40,15 @@ This is an upgradeable proxy (eip1967 pattern). Implementation -> 0xC0ffee000000
 Owner/admin can: mint, admin withdraw/sweep. These are legitimate in many designs but are also the levers used in rug pulls. Confirm who holds the keys and any limits.
 
 *Evidence:* `powers`: ['mint', 'admin withdraw/sweep']
+
+### 🟡 [Medium] Hardcoded unlimited approval constant in bytecode
+`APPROVAL_UNLIMITED_CONSTANT` · check: `approval_traps`
+
+Runtime bytecode pushes type(uint256).max and exposes approval-related selectors (approve). Phishing drainers and some routers hardcode unlimited approvals so a single signature/tx can seize a victim's full token balance.
+
+*Evidence:* `selectors`: ['approve'], `max_uint256_push32`: True
+
+*Recommendation:* Prefer bounded allowances. If this is a router/aggregator, confirm it is a known-good implementation before approving.
 
 ### 🟡 [Medium] Address blacklist / denylist mechanism
 `TOKEN_BLACKLIST` · check: `token_traps`

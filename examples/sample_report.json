@@ -7,7 +7,7 @@
   "counts": {
     "Info": 1,
     "Low": 2,
-    "Medium": 7,
+    "Medium": 8,
     "High": 2,
     "Critical": 0
   },
@@ -58,6 +58,20 @@
         ]
       },
       "recommendation": ""
+    },
+    {
+      "id": "APPROVAL_UNLIMITED_CONSTANT",
+      "title": "Hardcoded unlimited approval constant in bytecode",
+      "severity": "Medium",
+      "check": "approval_traps",
+      "description": "Runtime bytecode pushes type(uint256).max and exposes approval-related selectors (approve). Phishing drainers and some routers hardcode unlimited approvals so a single signature/tx can seize a victim's full token balance.",
+      "evidence": {
+        "selectors": [
+          "approve"
+        ],
+        "max_uint256_push32": true
+      },
+      "recommendation": "Prefer bounded allowances. If this is a router/aggregator, confirm it is a known-good implementation before approving."
     },
     {
       "id": "TOKEN_BLACKLIST",

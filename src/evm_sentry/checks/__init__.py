@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import List
 
+from .approval_traps import check_approval_traps
 from .base import Check
 from .dangerous_opcodes import check_dangerous_opcodes
 from .freshness import check_freshness
@@ -17,6 +18,7 @@ ALL_CHECKS: List[Check] = [
     check_proxy,
     check_ownership,
     check_dangerous_opcodes,
+    check_approval_traps,
     check_token_traps,
     check_freshness,
 ]

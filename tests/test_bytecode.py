@@ -36,3 +36,19 @@ def test_slot_to_address():
     word = "0x000000000000000000000000" + "ab" * 20
     assert bc.slot_to_address(word) == "0x" + "ab" * 20
     assert bc.slot_to_address("0x0") == ""
+
+
+def test_push4_selectors_skip_non_push4_data():
+    # approve selector only counts when it is a PUSH4 immediate, not raw bytes.
+    approve = "095ea7b3"
+    assert approve not in bc.push4_selectors("0x" + approve)
+    assert approve in bc.push4_selectors("0x63" + approve)  # PUSH4 approve
+    # Random embedded hex inside PUSH32 must not count as a selector.
+    noise = "0x7f" + approve + ("00" * 28)
+    assert approve not in bc.push4_selectors(noise)
+
+
+def test_has_push_immediate_max_uint256():
+    code = "0x7f" + "ff" * 32  # PUSH32 type(uint256).max
+    assert bc.has_push_immediate(code, bc.MAX_UINT256)
+    assert not bc.has_push_immediate("0x6001", bc.MAX_UINT256)
