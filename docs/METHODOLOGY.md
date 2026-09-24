@@ -77,6 +77,24 @@ metamorphic-contract enabler).
 *False positives:* `DELEGATECALL` is ubiquitous in proxies and libraries; treat
 it as context, not a verdict.
 
+### Approval / permit traps (`approval_traps`)
+Bytecode-only scan of **PUSH4 function selectors** and the **PUSH32
+`type(uint256).max`** constant:
+
+- **`APPROVAL_UNLIMITED_CONSTANT` (MEDIUM):** max-uint256 push co-located with
+  `approve` / `permit` / `increaseAllowance` / `setApprovalForAll` selectors.
+  Drainers and aggressive routers hardcode unlimited approvals so one
+  signature/tx can seize a full balance.
+- **`APPROVAL_PERMIT_DRAIN_SURFACE`:** EIP-2612 or DAI-style `permit` plus a
+  pull selector (`transferFrom` / `safeTransferFrom`). LOW on contracts that
+  look like a plain ERC-20 Permit token; MEDIUM when the contract does not look
+  like a token or also hardcodes max-uint256 — the gasless phishing pattern of
+  collecting a permit then calling `transferFrom`.
+
+*False positives:* legitimate routers and ERC-20 Permit tokens share pieces of
+this surface. The check reports a **capability / UX hazard**, with evidence
+naming the exact selectors so a human can dismiss known-good deployments.
+
 ### Token honeypot signals (`token_traps`)
 Source-text heuristics for classic honeypot/rug levers: blacklist/denylist,
 trading on/off toggles, max-tx / max-wallet caps, adjustable buy/sell fees, and

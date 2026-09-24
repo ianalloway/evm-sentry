@@ -4,7 +4,8 @@
   <b>On-chain anomaly &amp; risk scanner for Ethereum, Base, and Optimism smart contracts.</b><br/>
   Point it at any contract address and get a transparent, explainable risk report —
   proxy/upgradeability, access-control centralization, dangerous opcodes, honeypot
-  signals, and provenance — in seconds.
+  signals, unlimited-approval / EIP-2612 permit phishing surfaces, and provenance —
+  in seconds.
 </p>
 
 <p align="center">
@@ -37,6 +38,7 @@ It is a triage and research tool — *not* a substitute for a professional audit
 | **Proxy / upgradeability** | EIP-1967 (transparent/UUPS) & EIP-1167 minimal proxies, implementation + admin slots, UUPS missing `_authorizeUpgrade` guard, `delegatecall`+`selfdestruct` (Parity-style brick) | ✅ (slots via RPC) |
 | **Access control** | `Ownable`/single-owner vs. role-based, renounceable ownership, privileged powers (mint, adjustable fees, admin withdraw/sweep) | partial (full with source) |
 | **Dangerous opcodes** | `SELFDESTRUCT`, `DELEGATECALL`, `CALLCODE`, `CREATE2` — parsed correctly, skipping PUSH immediate data | ✅ (bytecode only) |
+| **Approval / permit traps** | Hardcoded `type(uint256).max` beside `approve`/`permit`/`setApprovalForAll` selectors; EIP-2612 / DAI permit + `transferFrom` drain surface (elevated when not a plain ERC-20) | ✅ (bytecode only) |
 | **Token honeypot signals** | blacklist/denylist, trading on/off toggle, max-tx / max-wallet limits, adjustable buy/sell fees, owner-controlled mint | needs source |
 | **Provenance / freshness** | deployer, creation block, contract age (fresh deploys flagged) | needs explorer key |
 | **Proxy upgrade timeline** | `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs via `eth_getLogs` (`--timeline`) | ✅ (RPC) |
@@ -141,6 +143,7 @@ Findings:
   [High    ] OPCODE_SELFDESTRUCT    SELFDESTRUCT reachable in bytecode
   [Medium  ] PROXY_UPGRADEABLE      Upgradeable proxy detected
   [Medium  ] PRIVILEGED_POWERS      Privileged owner powers present (mint, fees, withdraw)
+  [Medium  ] APPROVAL_UNLIMITED_CONSTANT  Hardcoded unlimited approval constant in bytecode
   [Medium  ] TOKEN_BLACKLIST        Address blacklist / denylist mechanism
   [Medium  ] TOKEN_TRADING_TOGGLE   Trading can be toggled on/off by admin
   [Medium  ] TOKEN_ADJUSTABLE_FEES  Adjustable buy/sell fees
@@ -170,10 +173,10 @@ rationale behind each heuristic and its known false-positive modes.
 
 ## Not implemented yet
 
-Ideas under consideration, not committed to: approval/allowance risk scanning,
-reentrancy static patterns, storage-layout diffing across upgrades, batch/
-watchlist mode, and an allowlist of known-good implementations to cut noise.
-None of these exist in the codebase today — if you want one, open an issue.
+Ideas under consideration, not committed to: reentrancy static patterns,
+storage-layout diffing across upgrades, batch/watchlist mode, and an allowlist
+of known-good implementations to cut noise. None of these exist in the codebase
+today — if you want one, open an issue.
 
 ## Limitations & disclaimer
 

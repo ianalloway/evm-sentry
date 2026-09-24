@@ -65,3 +65,19 @@ def test_clean_verified_contract_low():
     )
     res = s.scan_context(ctx)
     assert res.risk_band in ("Minimal", "Low")
+
+
+def test_approval_traps_score_into_report():
+    s = make_scanner()
+    # PUSH32 max + PUSH4 approve + PUSH4 permit + PUSH4 transferFrom
+    code = "0x7f" + "ff" * 32 + "63095ea7b3" + "63d505accf" + "6323b872dd"
+    ctx = ContractContext(
+        address="0x" + "55" * 20, chain="base", chain_id=8453,
+        bytecode=code,
+    )
+    res = s.scan_context(ctx)
+    ids = {f.id for f in res.findings}
+    assert "APPROVAL_UNLIMITED_CONSTANT" in ids
+    assert "APPROVAL_PERMIT_DRAIN_SURFACE" in ids
+    assert res.risk_score >= 15
+    assert "APPROVAL_UNLIMITED_CONSTANT" in report.to_terminal(res)

@@ -39,11 +39,14 @@ contract MoonRocketToken is Ownable, UUPSUpgradeable {
 
 
 def build_context() -> ContractContext:
+    # Toy runtime: SELFDESTRUCT + unlimited-approve fingerprint (PUSH32 max +
+    # PUSH4 approve) so the sample report exercises approval_traps too.
+    bytecode = "0x60806040" + "ff" + "7f" + "ff" * 32 + "63095ea7b3"
     return ContractContext(
         address="0xEXAMPLE000000000000000000000000000000bAd",
         chain="base",
         chain_id=8453,
-        bytecode="0x60806040" + "ff",  # toy bytecode incl. SELFDESTRUCT
+        bytecode=bytecode,
         balance_wei=12_500_000_000_000_000,  # 0.0125 ETH
         verified=True,
         contract_name="MoonRocketToken",

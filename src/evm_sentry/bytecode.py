@@ -73,6 +73,54 @@ def present_opcodes(code: str) -> Set[str]:
     return found
 
 
+def iter_push_immediates(data: bytes):
+    """Yield (pc, push_opcode, immediate_bytes) for every PUSH1..PUSH32."""
+    i = 0
+    n = len(data)
+    while i < n:
+        op = data[i]
+        if 0x60 <= op <= 0x7F:  # PUSH1..PUSH32
+            size = op - 0x5F
+            start = i + 1
+            end = min(start + size, n)
+            yield i, op, data[start:end]
+            i = start + size
+        else:
+            i += 1
+
+
+def push4_selectors(code: str) -> Set[str]:
+    """Return 4-byte function selectors that appear as PUSH4 immediates.
+
+    Dispatchers and external calls both encode selectors via PUSH4, so this is
+    a reliable bytecode-only signal (unlike naive substring search over hex).
+    """
+    data = to_bytes(code)
+    found: Set[str] = set()
+    for _, op, imm in iter_push_immediates(data):
+        if op == 0x63 and len(imm) == 4:  # PUSH4
+            found.add(imm.hex())
+    return found
+
+
+def has_push_immediate(code: str, needle: bytes) -> bool:
+    """True if any PUSH immediate equals ``needle`` (length selects PUSH width)."""
+    if not needle:
+        return False
+    want_op = 0x5F + len(needle)
+    if not (0x60 <= want_op <= 0x7F):
+        return False
+    data = to_bytes(code)
+    for _, op, imm in iter_push_immediates(data):
+        if op == want_op and imm == needle:
+            return True
+    return False
+
+
+# type(uint256).max — hardcoded unlimited-approval / infinite-allowance constant.
+MAX_UINT256 = b"\xff" * 32
+
+
 def is_minimal_proxy(code: str) -> bool:
     c = normalize(code)
     return any(p in c for p in EIP1167_PREFIXES)
