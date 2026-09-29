@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "evm-sentry"
-version = "0.1.0"
+version = "0.2.0"
 description = "On-chain anomaly & risk scanner for Ethereum, Base, and Optimism smart contracts."
 readme = "README.md"
 requires-python = ">=3.9"
