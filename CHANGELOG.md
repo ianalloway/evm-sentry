@@ -5,6 +5,20 @@ Notable changes to evm-sentry. Format loosely follows
 
 ## [Unreleased]
 
+### Security
+
+- Explorer API keys no longer leak into scan output. `requests` errors embed
+  the full request URL (including `apikey=…`), and those messages flowed into
+  report warnings (JSON / Markdown / terminal) and CLI `error:` lines. Warnings
+  and errors now go through `redact_secrets()`, which masks key-like query
+  params, the configured key, `ETHERSCAN_API_KEY`, and custom
+  `EVM_SENTRY_RPC_*` URLs.
+
+### Fixed
+
+- The "No explorer API key set" note is only shown when no key is configured;
+  an explorer request failure now reports as "Explorer source lookup failed".
+
 ## [0.2.0] - 2026-09-29
 
 ### Added

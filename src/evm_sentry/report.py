@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import List
 
+from .client import redact_secrets
 from .config import CHAINS
 from .models import ScanResult, Severity
 
@@ -28,7 +29,9 @@ _SEV_EMOJI = {
 
 
 def to_json(result: ScanResult, indent: int = 2) -> str:
-    return json.dumps(result.to_dict(), indent=indent)
+    data = result.to_dict()
+    data["warnings"] = [redact_secrets(w) for w in data.get("warnings") or []]
+    return json.dumps(data, indent=indent)
 
 
 def _explorer_link(result: ScanResult) -> str:
@@ -87,7 +90,7 @@ def to_markdown(result: ScanResult) -> str:
         lines.append("## Notes & data limitations")
         lines.append("")
         for w in result.warnings:
-            lines.append(f"- {w}")
+            lines.append(f"- {redact_secrets(w)}")
         lines.append("")
 
     lines.append("---")
@@ -115,5 +118,5 @@ def to_terminal(result: ScanResult) -> str:
     if result.warnings:
         lines.append("Notes:")
         for w in result.warnings:
-            lines.append(f"  - {w}")
+            lines.append(f"  - {redact_secrets(w)}")
     return "\n".join(lines)

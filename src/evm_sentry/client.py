@@ -9,7 +9,9 @@ Designed to degrade gracefully:
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+import os
+import re
+from typing import Any, Dict, Iterable, List, Optional
 
 import requests
 
@@ -18,6 +20,33 @@ from .config import ChainConfig, explorer_api_key
 from .context import ContractContext
 
 _RE_ADDRESS = None
+
+# Query-string credentials (Etherscan ``apikey=``, ``api_key=``, ``token=`` …).
+_RE_SECRET_PARAM = re.compile(
+    r"(?i)\b(apikey|api_key|api-key|key|token|access_token|auth|secret)=([^&\s'\"#)]+)"
+)
+REDACTED = "***REDACTED***"
+
+
+def redact_secrets(text: object, secrets: Iterable[Optional[str]] = ()) -> str:
+    """Strip API keys from text destined for warnings, reports, or stderr.
+
+    Masks key-like query parameters (``apikey=…``), any literal secret passed
+    in, the ``ETHERSCAN_API_KEY`` env value, and custom RPC URLs from
+    ``EVM_SENTRY_RPC_*`` (which often embed a provider key in the path).
+    """
+    out = str(text)
+    literals = [s for s in secrets if s]
+    env_key = os.environ.get("ETHERSCAN_API_KEY")
+    if env_key:
+        literals.append(env_key)
+    for name, value in os.environ.items():
+        if name.startswith("EVM_SENTRY_RPC_") and value:
+            out = out.replace(value, f"${name}")
+    # Longest first so a key that contains another key is fully masked.
+    for secret in sorted(set(literals), key=len, reverse=True):
+        out = out.replace(secret, REDACTED)
+    return _RE_SECRET_PARAM.sub(lambda m: f"{m.group(1)}={REDACTED}", out)
 
 
 def is_address(value: str) -> bool:
@@ -131,6 +160,10 @@ class EVMClient:
             return int(result["timestamp"], 16)
         return None
 
+    def _safe(self, exc: object) -> str:
+        """Exception text with the explorer key (and other secrets) masked."""
+        return redact_secrets(exc, [self.api_key])
+
     # ---- orchestration -----------------------------------------------------
     def build_context(self, address: str) -> ContractContext:
         address = address.strip()
@@ -145,13 +178,13 @@ class EVMClient:
             ctx.bytecode = self.get_code(address)
             ctx.data_sources.append("rpc:eth_getCode")
         except Exception as exc:  # noqa: BLE001
-            ctx.warnings.append(f"Could not fetch bytecode: {exc}")
+            ctx.warnings.append(f"Could not fetch bytecode: {self._safe(exc)}")
             return ctx
 
         try:
             ctx.balance_wei = self.get_balance(address)
         except Exception as exc:  # noqa: BLE001
-            ctx.warnings.append(f"Could not fetch balance: {exc}")
+            ctx.warnings.append(f"Could not fetch balance: {self._safe(exc)}")
 
         if not ctx.is_contract:
             return ctx
@@ -183,20 +216,27 @@ class EVMClient:
                 if admin:
                     ctx.proxy_admin = admin
         except Exception as exc:  # noqa: BLE001
-            ctx.warnings.append(f"Proxy slot read failed: {exc}")
+            ctx.warnings.append(f"Proxy slot read failed: {self._safe(exc)}")
 
     def _enrich_from_explorer(self, ctx: ContractContext) -> None:
-        src = None
-        try:
-            src = self.get_source(ctx.address)
-        except Exception as exc:  # noqa: BLE001
-            ctx.warnings.append(f"Explorer source lookup failed: {exc}")
-
-        if src is None:
+        if not self.api_key:
             ctx.warnings.append(
                 "No explorer API key set (ETHERSCAN_API_KEY) — "
                 "source/ABI heuristics skipped, bytecode analysis only."
             )
+            return
+
+        try:
+            src = self.get_source(ctx.address)
+        except Exception as exc:  # noqa: BLE001
+            ctx.warnings.append(
+                f"Explorer source lookup failed: {self._safe(exc)} — "
+                "source/ABI heuristics skipped, bytecode analysis only."
+            )
+            return
+
+        if not src:
+            ctx.warnings.append("Explorer returned no source record.")
             return
 
         if str(src.get("status")) != "1" or not src.get("result"):
@@ -239,7 +279,7 @@ class EVMClient:
                     ctx.creation_timestamp = ts
                 ctx.data_sources.append("explorer:getcontractcreation")
         except Exception as exc:  # noqa: BLE001
-            ctx.warnings.append(f"Creation lookup failed: {exc}")
+            ctx.warnings.append(f"Creation lookup failed: {self._safe(exc)}")
 
 
 def _clean_source(raw: str) -> str:
