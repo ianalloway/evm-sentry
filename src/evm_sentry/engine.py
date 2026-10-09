@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from .checks import ALL_CHECKS, Check
-from .client import EVMClient, is_address
+from .client import EVMClient, is_address, redact_secrets
 from .config import resolve_chain
 from .context import ContractContext
 from .models import Finding, ScanResult, Severity
@@ -24,6 +24,11 @@ class Scanner:
         self.checks = checks if checks is not None else list(ALL_CHECKS)
         self.client = client or EVMClient(self.chain_cfg, api_key=api_key)
 
+    def _redact(self, text: object) -> str:
+        # Duck-typed offline clients (tests, examples) may not implement redact().
+        redact = getattr(self.client, "redact", None)
+        return redact(text) if callable(redact) else redact_secrets(text)
+
     def scan_address(self, address: str) -> ScanResult:
         if not is_address(address):
             raise ValueError(f"Not a valid 0x address: {address!r}")
@@ -36,7 +41,7 @@ class Scanner:
             address=ctx.address,
             chain=ctx.chain,
             is_contract=ctx.is_contract,
-            warnings=list(ctx.warnings),
+            warnings=[self._redact(w) for w in ctx.warnings],
             metadata={
                 "chain_id": ctx.chain_id,
                 "contract_name": ctx.contract_name,
@@ -72,7 +77,8 @@ class Scanner:
                     result.add(finding)
             except Exception as exc:  # noqa: BLE001
                 result.warnings.append(
-                    f"Check '{getattr(check, '__name__', check)}' errored: {exc}"
+                    f"Check '{getattr(check, '__name__', check)}' errored: "
+                    f"{self._redact(exc)}"
                 )
 
         # Score on non-informational findings.

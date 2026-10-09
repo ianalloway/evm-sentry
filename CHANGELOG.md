@@ -13,6 +13,11 @@ Notable changes to evm-sentry. Format loosely follows
   and errors now go through `redact_secrets()`, which masks key-like query
   params, the configured key, `ETHERSCAN_API_KEY`, and custom
   `EVM_SENTRY_RPC_*` URLs.
+- RPC provider keys are redacted even when an error quotes only part of the
+  URL (e.g. `Max retries exceeded with url: /v2/<key>`): key-like path
+  segments and `user:pass@` userinfo from the RPC URL are masked, URL
+  userinfo is masked everywhere, and the engine redacts context warnings and
+  check exception text before they enter a `ScanResult`.
 
 ### Fixed
 

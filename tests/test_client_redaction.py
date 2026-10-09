@@ -85,3 +85,79 @@ def test_missing_key_warning_only_when_no_key(monkeypatch):
     ctx = _client(None).build_context(ADDR)
     assert any("No explorer API key set" in w for w in ctx.warnings)
     assert not any("Explorer source lookup failed" in w for w in ctx.warnings)
+
+
+RPC_KEY = "alchemyKey0123456789abcdef"
+RPC_URL = f"https://eth-mainnet.g.alchemy.com/v2/{RPC_KEY}"
+
+
+class _ExplorerHTTP4xxSession(_FakeSession):
+    """Explorer answers 401; requests' real raise_for_status builds the error text."""
+
+    def get(self, url, params=None, timeout=None):
+        resp = requests.Response()
+        resp.status_code = 401
+        resp.reason = "Unauthorized"
+        resp.url = requests.Request("GET", url, params=params).prepare().url
+        return resp
+
+
+class _RPCDownSession(_FakeSession):
+    """RPC connection failure: requests reports only the path, which holds the key."""
+
+    def post(self, url, json=None, timeout=None):
+        raise requests.ConnectionError(
+            "HTTPSConnectionPool(host='eth-mainnet.g.alchemy.com', port=443): "
+            f"Max retries exceeded with url: /v2/{RPC_KEY} (Caused by NewConnectionError)"
+        )
+
+
+def _render_all(result):
+    return (report.to_json(result), report.to_markdown(result), report.to_terminal(result))
+
+
+def test_explorer_4xx_with_apikey_in_url_produces_report_without_key(monkeypatch):
+    monkeypatch.delenv("ETHERSCAN_API_KEY", raising=False)
+    client = EVMClient(
+        chain=resolve_chain("ethereum"), api_key=KEY, session=_ExplorerHTTP4xxSession()
+    )
+    ctx = client.build_context(ADDR)
+    assert any("401 Client Error" in w for w in ctx.warnings)
+    assert KEY not in "\n".join(ctx.warnings)
+    result = Scanner(chain="ethereum", client=client).scan_context(ctx)
+    for rendered in _render_all(result):
+        assert KEY not in rendered
+
+
+def test_rpc_error_with_key_in_url_path_is_redacted(monkeypatch):
+    monkeypatch.delenv("ETHERSCAN_API_KEY", raising=False)
+    monkeypatch.setenv("EVM_SENTRY_RPC_ETHEREUM", RPC_URL)
+    client = EVMClient(chain=resolve_chain("ethereum"), api_key=None, session=_RPCDownSession())
+    ctx = client.build_context(ADDR)
+    assert any("Could not fetch bytecode" in w for w in ctx.warnings)
+    assert RPC_KEY not in "\n".join(ctx.warnings)
+    # Reports also redact on their own, even for warnings that bypassed the client.
+    ctx.warnings.append(f"upstream: Max retries exceeded with url: /v2/{RPC_KEY}")
+    result = Scanner(chain="ethereum", client=client).scan_context(ctx)
+    for rendered in _render_all(result):
+        assert RPC_KEY not in rendered
+
+
+def test_redact_secrets_masks_url_userinfo():
+    out = redact_secrets("failed for url: https://user:hunter2pass@rpc.example.org/x")
+    assert "hunter2pass" not in out
+    assert f"https://{REDACTED}@rpc.example.org/x" in out
+
+
+def test_check_exception_text_is_redacted_before_entering_warnings(monkeypatch):
+    monkeypatch.delenv("ETHERSCAN_API_KEY", raising=False)
+
+    def leaky_check(ctx):
+        raise RuntimeError(f"lookup failed for url: {LEAKY_URL}")
+
+    client = _client(KEY)
+    ctx = client.build_context(ADDR)
+    result = Scanner(chain="ethereum", client=client, checks=[leaky_check]).scan_context(ctx)
+    joined = "\n".join(result.warnings)
+    assert "leaky_check" in joined
+    assert KEY not in joined
