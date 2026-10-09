@@ -7,7 +7,7 @@ import sys
 from typing import List, Optional
 
 from . import __version__
-from .client import EVMClient, is_address
+from .client import EVMClient, is_address, redact_secrets
 from .config import CHAINS, resolve_chain
 from .engine import Scanner
 from .report import to_json, to_markdown, to_terminal
@@ -92,7 +92,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         except Exception as exc:  # noqa: BLE001
-            print(f"error: timeline failed: {exc}", file=sys.stderr)
+            print(
+                f"error: timeline failed: {redact_secrets(exc, [args.api_key])}",
+                file=sys.stderr,
+            )
             return 2
 
         fmt = "markdown" if args.markdown else args.format
@@ -119,7 +122,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # noqa: BLE001
-        print(f"error: scan failed: {exc}", file=sys.stderr)
+        print(f"error: scan failed: {redact_secrets(exc, [args.api_key])}", file=sys.stderr)
         return 2
 
     fmt = "markdown" if args.markdown else args.format
