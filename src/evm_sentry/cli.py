@@ -7,7 +7,7 @@ import sys
 from typing import List, Optional
 
 from . import __version__
-from .client import EVMClient, is_address, redact_secrets
+from .client import EVMClient, is_address, redact_secrets, url_secrets
 from .config import CHAINS, resolve_chain
 from .engine import Scanner
 from .report import to_json, to_markdown, to_terminal
@@ -72,6 +72,15 @@ _BAND_ORDER = {"Minimal": 0, "N/A": 0, "Low": 1, "Elevated": 2, "High": 3, "Crit
 _FAIL_MAP = {"low": 1, "medium": 2, "elevated": 2, "high": 3, "critical": 4}
 
 
+def _redact(exc: object, args: argparse.Namespace) -> str:
+    """Error text with the explorer key and the chain's RPC URL credentials masked."""
+    try:
+        rpc_url = resolve_chain(args.chain).rpc_url
+    except ValueError:
+        rpc_url = None
+    return redact_secrets(exc, [args.api_key, *url_secrets(rpc_url)])
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     if not is_address(args.address):
@@ -89,13 +98,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                 to_block=args.to_block,
             )
         except ValueError as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            # requests' MissingSchema / InvalidURL are ValueErrors quoting the RPC URL.
+            print(f"error: {_redact(exc, args)}", file=sys.stderr)
             return 2
         except Exception as exc:  # noqa: BLE001
-            print(
-                f"error: timeline failed: {redact_secrets(exc, [args.api_key])}",
-                file=sys.stderr,
-            )
+            print(f"error: timeline failed: {_redact(exc, args)}", file=sys.stderr)
             return 2
 
         fmt = "markdown" if args.markdown else args.format
@@ -119,10 +126,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         scanner = Scanner(chain=args.chain, api_key=args.api_key)
         result = scanner.scan_address(args.address)
     except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        print(f"error: {_redact(exc, args)}", file=sys.stderr)
         return 2
     except Exception as exc:  # noqa: BLE001
-        print(f"error: scan failed: {redact_secrets(exc, [args.api_key])}", file=sys.stderr)
+        print(f"error: scan failed: {_redact(exc, args)}", file=sys.stderr)
         return 2
 
     fmt = "markdown" if args.markdown else args.format

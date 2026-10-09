@@ -18,6 +18,9 @@ Notable changes to evm-sentry. Format loosely follows
   segments and `user:pass@` userinfo from the RPC URL are masked, URL
   userinfo is masked everywhere, and the engine redacts context warnings and
   check exception text before they enter a `ScanResult`.
+- CLI `error:` lines for `ValueError`s are redacted too. `requests`'
+  `MissingSchema` / `InvalidURL` are `ValueError`s that quote the URL, so a
+  malformed `EVM_SENTRY_RPC_*` value used to print its key.
 
 ### Fixed
 
