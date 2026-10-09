@@ -12,6 +12,7 @@ import json
 import os
 import re
 from typing import Any, Dict, Iterable, List, Optional
+from urllib.parse import urlsplit
 
 import requests
 
@@ -25,15 +26,37 @@ _RE_ADDRESS = None
 _RE_SECRET_PARAM = re.compile(
     r"(?i)\b(apikey|api_key|api-key|key|token|access_token|auth|secret)=([^&\s'\"#)]+)"
 )
+# ``scheme://user:pass@host`` credentials embedded in any URL.
+_RE_URL_USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@'\"]+@")
+# RPC providers (Alchemy ``/v2/<key>``, Infura ``/v3/<key>``, …) put the key
+# in a path segment; treat any segment this long as a credential.
+_MIN_PATH_SECRET_LEN = 16
 REDACTED = "***REDACTED***"
+
+
+def url_secrets(url: Optional[str]) -> List[str]:
+    """Credential-bearing parts of a URL: userinfo and key-like path segments.
+
+    Returned separately from the full URL because requests often reports only
+    part of it (e.g. ``Max retries exceeded with url: /v2/<key>``).
+    """
+    if not url:
+        return []
+    try:
+        parts = urlsplit(url)
+        found = [parts.username, parts.password]
+    except ValueError:
+        return []
+    found += [seg for seg in parts.path.split("/") if len(seg) >= _MIN_PATH_SECRET_LEN]
+    return [p for p in found if p]
 
 
 def redact_secrets(text: object, secrets: Iterable[Optional[str]] = ()) -> str:
     """Strip API keys from text destined for warnings, reports, or stderr.
 
-    Masks key-like query parameters (``apikey=…``), any literal secret passed
-    in, the ``ETHERSCAN_API_KEY`` env value, and custom RPC URLs from
-    ``EVM_SENTRY_RPC_*`` (which often embed a provider key in the path).
+    Masks key-like query parameters (``apikey=…``), URL userinfo, any literal
+    secret passed in, the ``ETHERSCAN_API_KEY`` env value, and custom RPC URLs
+    from ``EVM_SENTRY_RPC_*`` along with their credential-bearing parts.
     """
     out = str(text)
     literals = [s for s in secrets if s]
@@ -43,9 +66,11 @@ def redact_secrets(text: object, secrets: Iterable[Optional[str]] = ()) -> str:
     for name, value in os.environ.items():
         if name.startswith("EVM_SENTRY_RPC_") and value:
             out = out.replace(value, f"${name}")
+            literals.extend(url_secrets(value))
     # Longest first so a key that contains another key is fully masked.
     for secret in sorted(set(literals), key=len, reverse=True):
         out = out.replace(secret, REDACTED)
+    out = _RE_URL_USERINFO.sub(lambda m: f"{m.group(1)}{REDACTED}@", out)
     return _RE_SECRET_PARAM.sub(lambda m: f"{m.group(1)}={REDACTED}", out)
 
 
@@ -160,9 +185,12 @@ class EVMClient:
             return int(result["timestamp"], 16)
         return None
 
+    def redact(self, text: object) -> str:
+        """Text with the explorer key, RPC URL credentials and other secrets masked."""
+        return redact_secrets(text, [self.api_key, *url_secrets(self.chain.rpc_url)])
+
     def _safe(self, exc: object) -> str:
-        """Exception text with the explorer key (and other secrets) masked."""
-        return redact_secrets(exc, [self.api_key])
+        return self.redact(exc)
 
     # ---- orchestration -----------------------------------------------------
     def build_context(self, address: str) -> ContractContext:
