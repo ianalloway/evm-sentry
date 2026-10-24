@@ -109,6 +109,20 @@ Supported chains: `ethereum` (1), `base` (8453), `optimism` (10). Aliases:
 `eth`/`mainnet`, `op`. Override any RPC with `EVM_SENTRY_RPC_<CHAIN>`
 (e.g. `EVM_SENTRY_RPC_BASE`).
 
+### Exit codes and unavailable data
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Scan completed and any requested risk threshold was not met. |
+| `1` | The result met or exceeded `--fail-on`. |
+| `2` | Invalid input or a scan that could not be completed. |
+
+If the RPC cannot return valid bytecode, the report shows **Unknown / Unassessed**
+and the CLI exits `2`, including when `--fail-on` is set. JSON reports use `null`
+for `is_contract` and `risk_score` in this case. A failed lookup never counts as
+evidence that an address is an EOA or has zero risk. Explorer failures still
+allow bytecode analysis, with the missing source information noted in warnings.
+
 ### Proxy upgrade timeline
 
 ```bash

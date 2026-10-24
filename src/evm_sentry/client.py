@@ -115,7 +115,10 @@ class EVMClient:
         return data.get("result")
 
     def get_code(self, address: str) -> str:
-        return self.rpc("eth_getCode", [address, "latest"]) or "0x"
+        result = self.rpc("eth_getCode", [address, "latest"])
+        if not isinstance(result, str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{2})*", result):
+            raise ValueError("RPC returned invalid bytecode for eth_getCode")
+        return result
 
     def get_balance(self, address: str) -> int:
         result = self.rpc("eth_getBalance", [address, "latest"]) or "0x0"
@@ -206,6 +209,7 @@ class EVMClient:
             ctx.bytecode = self.get_code(address)
             ctx.data_sources.append("rpc:eth_getCode")
         except Exception as exc:  # noqa: BLE001
+            ctx.bytecode_available = False
             ctx.warnings.append(f"Could not fetch bytecode: {self._safe(exc)}")
             return ctx
 

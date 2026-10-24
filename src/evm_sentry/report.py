@@ -41,6 +41,16 @@ def _explorer_link(result: ScanResult) -> str:
     return f"[{result.address}]({cfg.explorer_url}/address/{result.address})"
 
 
+def _type_label(result: ScanResult) -> str:
+    if result.is_contract is None:
+        return "Unknown (bytecode unavailable)"
+    return "Contract" if result.is_contract else "EOA / no code"
+
+
+def _score_label(result: ScanResult) -> str:
+    return "Unassessed" if result.risk_score is None else f"{result.risk_score}/100"
+
+
 def to_markdown(result: ScanResult) -> str:
     band = result.risk_band
     emoji = _EMOJI.get(band, "⚪")
@@ -49,12 +59,12 @@ def to_markdown(result: ScanResult) -> str:
     lines.append("")
     lines.append(f"**Address:** {_explorer_link(result)}  ")
     lines.append(f"**Chain:** {result.chain} (chainId {result.metadata.get('chain_id')})  ")
-    lines.append(f"**Type:** {'Contract' if result.is_contract else 'EOA / no code'}  ")
+    lines.append(f"**Type:** {_type_label(result)}  ")
     name = result.metadata.get("contract_name")
     if name:
         lines.append(f"**Contract:** {name}  ")
     lines.append("")
-    lines.append(f"## {emoji} Risk score: {result.risk_score}/100 — {band}")
+    lines.append(f"## {emoji} Risk score: {_score_label(result)} — {band}")
     lines.append("")
 
     counts = result.counts
@@ -107,8 +117,8 @@ def to_terminal(result: ScanResult) -> str:
     lines = [
         f"Address : {result.address}",
         f"Chain   : {result.chain}",
-        f"Type    : {'contract' if result.is_contract else 'EOA'}",
-        f"Score   : {result.risk_score}/100 ({result.risk_band})",
+        f"Type    : {_type_label(result)}",
+        f"Score   : {_score_label(result)} ({result.risk_band})",
         "Findings:",
     ]
     for f in sorted(result.findings, key=lambda x: x.severity, reverse=True):

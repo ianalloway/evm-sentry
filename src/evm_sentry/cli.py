@@ -147,6 +147,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         print(text)
 
+    if result.risk_band == "Unknown":
+        return 2
     if args.fail_on:
         if _BAND_ORDER.get(result.risk_band, 0) >= _FAIL_MAP[args.fail_on]:
             return 1

@@ -40,7 +40,7 @@ class Scanner:
         result = ScanResult(
             address=ctx.address,
             chain=ctx.chain,
-            is_contract=ctx.is_contract,
+            is_contract=ctx.is_contract if ctx.bytecode_available else None,
             warnings=[self._redact(w) for w in ctx.warnings],
             metadata={
                 "chain_id": ctx.chain_id,
@@ -52,8 +52,23 @@ class Scanner:
                 "balance_eth": round(ctx.balance_wei / 1e18, 6),
                 "creator": ctx.creator,
                 "data_sources": ctx.data_sources,
+                "bytecode_available": ctx.bytecode_available,
             },
         )
+
+        if not ctx.bytecode_available:
+            result.add(
+                Finding(
+                    id="SCAN_INCOMPLETE",
+                    title="Contract type and risk could not be assessed",
+                    severity=Severity.INFO,
+                    check="engine",
+                    description="The bytecode lookup failed; no risk checks were run.",
+                    recommendation="Check the RPC endpoint and retry the scan.",
+                )
+            )
+            result.risk_score, result.risk_band = None, "Unknown"
+            return result
 
         if not ctx.is_contract:
             result.add(
