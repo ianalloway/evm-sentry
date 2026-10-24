@@ -59,8 +59,8 @@ class ScanResult:
 
     address: str
     chain: str
-    is_contract: bool
-    risk_score: int = 0           # 0-100, clamped
+    is_contract: Optional[bool]   # None when bytecode could not be fetched
+    risk_score: Optional[int] = 0  # 0-100, clamped; None when unassessed
     risk_band: str = "Unknown"    # Minimal / Low / Elevated / High / Critical
     findings: List[Finding] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)

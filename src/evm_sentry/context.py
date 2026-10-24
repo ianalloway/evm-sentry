@@ -41,6 +41,9 @@ class ContractContext:
     # Bookkeeping
     data_sources: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    # A failed lookup is not evidence that the address has no code. Offline
+    # contexts default to available because their caller supplies the state.
+    bytecode_available: bool = True
 
     @property
     def is_contract(self) -> bool:
