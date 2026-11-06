@@ -276,7 +276,23 @@ class EVMClient:
             return
 
         ctx.data_sources.append("explorer:getsourcecode")
-        rec = src["result"][0] if isinstance(src["result"], list) else src["result"]
+        result = src["result"]
+        if isinstance(result, list):
+            if not result:
+                ctx.warnings.append(
+                    "Explorer returned an empty source record — "
+                    "source/ABI heuristics skipped, bytecode analysis only."
+                )
+                return
+            rec = result[0]
+        else:
+            rec = result
+        if not isinstance(rec, dict):
+            ctx.warnings.append(
+                "Explorer returned a malformed source record — "
+                "source/ABI heuristics skipped, bytecode analysis only."
+            )
+            return
         source_code = rec.get("SourceCode", "") or ""
         ctx.verified = bool(source_code.strip())
         ctx.contract_name = rec.get("ContractName", "") or ""
@@ -287,8 +303,11 @@ class EVMClient:
         if abi_raw and abi_raw != "Contract source code not verified":
             try:
                 ctx.abi = json.loads(abi_raw)
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                ctx.warnings.append(
+                    f"Explorer returned malformed ABI: {self._safe(exc)} — "
+                    "ABI heuristics skipped."
+                )
 
         # Explorer's own proxy flags
         if not ctx.proxy_implementation:
