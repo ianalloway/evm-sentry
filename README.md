@@ -123,6 +123,13 @@ for `is_contract` and `risk_score` in this case. A failed lookup never counts as
 evidence that an address is an EOA or has zero risk. Explorer failures still
 allow bytecode analysis, with the missing source information noted in warnings.
 
+### Compare saved reports
+
+Run `evm-sentry compare before.json after.json` on two JSON scans of the same
+chain and address. It shows the before and after risk bands, score change and
+observed finding counts by severity. It reads the files locally. An unassessed
+snapshot displays its band and leaves the score change unavailable.
+
 ### Proxy upgrade timeline
 
 ```bash
