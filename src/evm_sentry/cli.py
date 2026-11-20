@@ -6,7 +6,7 @@ import argparse
 import sys
 from typing import List, Optional
 
-from . import __version__
+from . import __version__, compare
 from .client import EVMClient, is_address, redact_secrets, url_secrets
 from .config import CHAINS, resolve_chain
 from .engine import Scanner
@@ -23,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="evm-sentry",
         description="On-chain anomaly & risk scanner for Ethereum, Base, and Optimism contracts.",
+        epilog="Use evm-sentry compare BEFORE.json AFTER.json to compare saved scans offline.",
     )
     p.add_argument("address", help="0x contract address to scan")
     p.add_argument(
@@ -87,6 +88,9 @@ def _redact(exc: object, args: argparse.Namespace) -> str:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["compare"]:
+        return compare.main(argv[1:])
     args = build_parser().parse_args(argv)
     if not is_address(args.address):
         print(f"error: invalid address: {args.address}", file=sys.stderr)
