@@ -86,15 +86,21 @@ class Scanner:
             result.risk_score, result.risk_band = 0, "N/A"
             return result
 
+        check_failed = False
         for check in self.checks:
             try:
                 for finding in check(ctx):
                     result.add(finding)
             except Exception as exc:  # noqa: BLE001
+                check_failed = True
                 result.warnings.append(
                     f"Check '{getattr(check, '__name__', check)}' errored: "
                     f"{self._redact(exc)}"
                 )
+
+        if check_failed:
+            result.risk_score, result.risk_band = None, "Unknown"
+            return result
 
         # Score on non-informational findings.
         scored = [f for f in result.findings if f.severity > Severity.INFO]

@@ -81,3 +81,23 @@ def test_approval_traps_score_into_report():
     assert "APPROVAL_PERMIT_DRAIN_SURFACE" in ids
     assert res.risk_score >= 15
     assert "APPROVAL_UNLIMITED_CONSTANT" in report.to_terminal(res)
+
+
+def test_failed_check_marks_overall_risk_unassessed_and_keeps_other_findings():
+    from evm_sentry.models import Finding, Severity
+
+    def unavailable(ctx):
+        raise ValueError("test input unavailable")
+
+    def available(ctx):
+        return [Finding(id="OBS", title="Observation", check="fixture", severity=Severity.INFO,
+                        description="Evidence from a completed check")]
+
+    ctx = ContractContext(address="0x" + "44" * 20, chain="base", chain_id=8453, bytecode="0x6001")
+    scanner = Scanner(chain="base", client=_NoNetClient(), checks=[unavailable, available])
+    result = scanner.scan_context(ctx)
+    assert result.risk_score is None
+    assert result.risk_band == "Unknown"
+    assert result.is_contract is True
+    assert any(f.id == "OBS" for f in result.findings)
+    assert any("unavailable" in w for w in result.warnings)
