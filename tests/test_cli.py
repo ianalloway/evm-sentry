@@ -69,3 +69,33 @@ def test_scan_value_error_is_redacted(monkeypatch, capsys):
     assert err.startswith("error: ")
     for leaked in (secret, _RPC_KEY, "hunter2pass"):
         assert leaked not in err
+
+
+def test_timeline_csv_export(tmp_path, monkeypatch, capsys):
+    import csv
+
+    from evm_sentry.timeline import TimelineEvent, TimelineReport
+
+    report = TimelineReport("base", 8453, _ADDR, "", 100, 150, [
+        TimelineEvent("AdminChanged(address,address)", 120, "0xaabb", 1,
+                      {"previous_admin": "0x01", "new_admin": "0x02"}),
+        TimelineEvent("Upgraded(address)", 135, "=1+1", 0, {"implementation": "0x03"}),
+    ], [])
+    monkeypatch.setattr("evm_sentry.cli.scan_timeline", lambda *a, **kw: report)
+    output = tmp_path / "timeline.csv"
+    assert main([_ADDR, "--timeline", "-f", "csv", "-o", str(output)]) == 0
+    with output.open(newline="") as stream:
+        first, second = csv.DictReader(stream)
+    assert first["chain"] == "base" and first["address"] == _ADDR
+    assert first["event"] == "AdminChanged(address,address)"
+    assert first["block_number"] == "120" and first["log_index"] == "1"
+    assert first["new_admin"] == "0x02" and first["implementation"] == ""
+    assert second["implementation"] == "0x03" and second["transaction_hash"] == "'=1+1"
+    report.events.clear()
+    assert main([_ADDR, "--timeline", "-f", "csv"]) == 0
+    assert len(capsys.readouterr().out.splitlines()) == 1
+
+
+def test_csv_requires_timeline(capsys):
+    assert main([_ADDR, "-f", "csv"]) == 2
+    assert "requires --timeline" in capsys.readouterr().err

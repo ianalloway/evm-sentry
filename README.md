@@ -128,10 +128,11 @@ allow bytecode analysis, with the missing source information noted in warnings.
 ```bash
 evm-sentry 0x... --chain base --timeline
 evm-sentry 0x... --timeline --format markdown -o timeline.md
+evm-sentry 0x... --timeline --format csv -o timeline.csv
 ```
 
 Fetches `Upgraded` / `AdminChanged` / `BeaconUpgraded` logs (default last 1,000 blocks).
-Use `--from-block` / `--to-block` to widen the window.
+Use `--from-block` / `--to-block` to widen the window. CSV exports one row per event with transaction and log identifiers and separate implementation, beacon, and admin address columns. An empty range produces the header alone.
 
 ### As a library
 

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import asdict, dataclass
+from io import StringIO
 from typing import Dict, List, Optional
 
 from .client import EVMClient
@@ -129,6 +131,24 @@ def scan_timeline(
             "No events in range does not prove a contract is immutable or safe.",
         ],
     )
+
+
+def render_timeline_csv(report: TimelineReport) -> str:
+    """One row per event, with a stable header even for an empty time range."""
+    output = StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    value_keys = ("implementation", "beacon", "previous_admin", "new_admin")
+    writer.writerow(("chain", "address", "block_number", "transaction_hash", "log_index",
+                     "event", *value_keys))
+    for event in report.events:
+        # Transaction hashes come verbatim from the RPC. Reject spreadsheet formulas.
+        tx = event.transaction_hash
+        if tx.lstrip().startswith(("=", "+", "-", "@")):
+            tx = "'" + tx
+        writer.writerow((report.chain, report.address, event.block_number, tx,
+                         event.log_index, event.event,
+                         *(event.values.get(key, "") for key in value_keys)))
+    return output.getvalue().rstrip("\n")
 
 
 def render_timeline_markdown(report: TimelineReport) -> str:

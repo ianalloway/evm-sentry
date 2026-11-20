@@ -11,7 +11,12 @@ from .client import EVMClient, is_address, redact_secrets, url_secrets
 from .config import CHAINS, resolve_chain
 from .engine import Scanner
 from .report import to_json, to_markdown, to_terminal
-from .timeline import render_timeline_markdown, render_timeline_terminal, scan_timeline
+from .timeline import (
+    render_timeline_csv,
+    render_timeline_markdown,
+    render_timeline_terminal,
+    scan_timeline,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,8 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "-f", "--format", default="terminal",
-        choices=["terminal", "json", "markdown", "md"],
-        help="Output format (default: terminal)",
+        choices=["terminal", "json", "markdown", "md", "csv"],
+        help="Output format (default: terminal; CSV available for timelines)",
     )
     p.add_argument(
         "--markdown",
@@ -87,6 +92,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"error: invalid address: {args.address}", file=sys.stderr)
         return 2
 
+    fmt = "markdown" if args.markdown else args.format
+    if fmt == "csv" and not args.timeline:
+        print("error: CSV output requires --timeline", file=sys.stderr)
+        return 2
+
     if args.timeline:
         try:
             chain = resolve_chain(args.chain)
@@ -105,8 +115,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"error: timeline failed: {_redact(exc, args)}", file=sys.stderr)
             return 2
 
-        fmt = "markdown" if args.markdown else args.format
-        if fmt == "json":
+        if fmt == "csv":
+            text = render_timeline_csv(report)
+        elif fmt == "json":
             import json
             text = json.dumps(report.to_dict(), indent=2)
         elif fmt in ("markdown", "md"):
@@ -132,7 +143,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"error: scan failed: {_redact(exc, args)}", file=sys.stderr)
         return 2
 
-    fmt = "markdown" if args.markdown else args.format
     if fmt in ("markdown", "md"):
         text = to_markdown(result)
     elif fmt == "json":
