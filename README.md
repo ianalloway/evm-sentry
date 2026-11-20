@@ -122,6 +122,8 @@ and the CLI exits `2`, including when `--fail-on` is set. JSON reports use `null
 for `is_contract` and `risk_score` in this case. A failed lookup never counts as
 evidence that an address is an EOA or has zero risk. Explorer failures still
 allow bytecode analysis, with the missing source information noted in warnings.
+If an individual risk check raises an exception, completed checks still contribute
+findings. The overall risk score is unassessed and the CLI exits `2`.
 
 ### Proxy upgrade timeline
 
